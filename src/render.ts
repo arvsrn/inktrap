@@ -98,13 +98,12 @@ export class CanvasRenderer {
             t.c.x *= this.scale;
             t.c.y *= this.scale;
 
-            this.context.fillStyle = "#EDEDED";
+            this.context.fillStyle = "#FFFFFF";
             this.context.beginPath();
             this.context.moveTo(t.a.x + this.offset.x, t.a.y + this.offset.y);
             this.context.lineTo(t.b.x + this.offset.x, t.b.y + this.offset.y);
             this.context.lineTo(t.c.x + this.offset.x, t.c.y + this.offset.y);
             this.context.fill();
-            console.log(t.a, t.b, t.c);
         } else {
             let min_x = Math.min(t.a.x, Math.min(t.b.x, t.c.x));
             let min_y = Math.min(t.a.y, Math.min(t.b.y, t.c.y));

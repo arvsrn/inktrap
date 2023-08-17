@@ -21,8 +21,8 @@
             <Chip>{pixelPreview ? 'On' : 'Off'}</Chip>
         </button>
         <button>Share</button>
-        <button on:wheel={e => zoom = Math.max(Math.min(zoom + e.deltaY * -0.01 * 0.25, 256), 0.25)}>
-            {zoom * 100}%
+        <button on:dblclick={() => zoom = 1} on:wheel|preventDefault={e => zoom = Math.max(Math.min((zoom + e.deltaY * -zoom/1000), 256), 0.25)}>
+            {Math.ceil(zoom * 100)}%
         </button>
     </div>
 </main>
