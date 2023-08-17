@@ -31,7 +31,7 @@
     }
 
     button.primary {
-        background: #a0a0a0;
-        color: #202020;
+        background: #444444;
+        color: #ededed;
     }
 </style>

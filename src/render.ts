@@ -11,6 +11,12 @@ interface Triangle {
     a: Vec2,
     b: Vec2,
     c: Vec2,
+    color: string,
+    colorHex: number[],
+}
+
+interface BezierCurve {
+    controlPoints: Array<Vec2>;
 }
 
 function isPointInsideTriangle(p: Vec2, a: Vec2, b: Vec2, c: Vec2): boolean {
@@ -35,6 +41,11 @@ function mixRgb(rgbA: number[], rgbB: number[], amountToMix: number){
     var g = mixColorChannel(rgbA[1],rgbB[1],amountToMix);
     var b = mixColorChannel(rgbA[2],rgbB[2],amountToMix);
     return `rgb(${r}, ${g}, ${b})`
+}
+
+interface Vec2 {
+    x: number;
+    y: number;
 }
 
 export class CanvasRenderer {
@@ -73,7 +84,7 @@ export class CanvasRenderer {
                 this.offset.y += e.movementY;
                 this.draw();
             }        
-        })
+        });
         
         window.addEventListener('resize', this.draw);
         this.draw();
@@ -89,7 +100,7 @@ export class CanvasRenderer {
         this.draw();
     } 
 
-    drawTriangle(t: Triangle) {
+    drawTriangle(t: Triangle, color: string, colorHex: number[]) {
         if (!this.pixelPreview) {
             t.a.x *= this.scale;
             t.a.y *= this.scale;
@@ -98,7 +109,7 @@ export class CanvasRenderer {
             t.c.x *= this.scale;
             t.c.y *= this.scale;
 
-            this.context.fillStyle = "#FFFFFF";
+            this.context.fillStyle = color;
             this.context.beginPath();
             this.context.moveTo(t.a.x + this.offset.x, t.a.y + this.offset.y);
             this.context.lineTo(t.b.x + this.offset.x, t.b.y + this.offset.y);
@@ -136,7 +147,13 @@ export class CanvasRenderer {
                     }
 
                     if (pixelsInTriangle > 0) {
-                        this.context.fillStyle = mixRgb([255, 255, 255], [32, 32, 32], pixelsInTriangle/this.ssaa);
+                        const pointCenterLocation = {
+                            x: (p.x * this.scale) + (this.scale / 2) + this.offset.x, 
+                            y: (p.y * this.scale) + (this.scale / 2) + this.offset.y,
+                        }
+                        const point = this.context.getImageData(pointCenterLocation.x, pointCenterLocation.y, 1, 1).data;
+
+                        this.context.fillStyle = mixRgb(colorHex, [point[0], point[1], point[2]], pixelsInTriangle/this.ssaa);
                         this.context.fillRect(
                             Math.ceil(p.x * this.scale + this.offset.x), 
                             Math.ceil(p.y * this.scale + this.offset.y), 
@@ -149,39 +166,87 @@ export class CanvasRenderer {
         }
     }
 
+    drawCurve(curve: BezierCurve) {
+        const minX = Math.min(...curve.controlPoints.map(p => p.x));
+        const maxX = Math.max(...curve.controlPoints.map(p => p.x));
+        const minY = Math.min(...curve.controlPoints.map(p => p.y));
+        const maxY = Math.max(...curve.controlPoints.map(p => p.y));
+        let top = minX;
+        let left = minY;
+        let width = maxX - left;
+        let height = maxY - top;
+
+        for (let i = 0; i < curve.controlPoints.length; i++) {
+            curve.controlPoints[i].x *= this.scale;
+            curve.controlPoints[i].y *= this.scale;
+        }
+
+        this.context.fillStyle = "#ededed";
+
+        for (let x = 0; x < width; x++) {
+            for (let y = 0; y < height; y++) {
+                let p = Vec2(x + left, y + top);
+                
+                // TODO
+            }
+        }
+    }
+
     draw() {
         this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight - 40;
+        this.canvas.height = window.innerHeight - 48;
         
-        this.context.fillStyle = "#202020";
+        this.context.fillStyle = "#1C1C1C";
         this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
+        const triangles: Array<Triangle> = [
+            {
+                a: Vec2(0, 0),
+                b: Vec2(16, 13),
+                c: Vec2(0, 16),
+                color: "#FF0000",
+                colorHex: [255, 0, 0],
+            },
+            {
+                a: Vec2(17, 0),
+                b: Vec2(1, 13),
+                c: Vec2(17, 16),
+                color: "#00FF00",
+                colorHex: [0, 255, 0],
+            },
+        ];
+
+        // const curves: Array<BezierCurve> = [
+        //     {
+        //         controlPoints: [{ x: 0, y: 100 }, { x: 0, y: 0 }, { x: 0, y: 0 }, { x: 100, y: 0 }],
+        //     },
+        // ];
+
+        for (const triangle of triangles)
+            this.drawTriangle(triangle, triangle.color, triangle.colorHex);
+
+        // for (const curve of curves) 
+        //    this.drawCurve(curve);
+
+        // draw gridlines if its zoomed enough
         if (this.scale > 8) {
             const order = this.getFrameBufferOrder();
             
-            this.context.fillStyle = "#333333";
+            this.context.fillStyle = "rgba(255, 255, 255, 0.15)";
 
             const gridlineOffset = {
                 x: this.offset.x % this.scale,
                 y: this.offset.y % this.scale,
             };
 
-            for (let x = 0; x < order.x; x++)
+            for (let x = 0; x < order.x; x++) {
                 this.context.fillRect(Math.ceil(x * this.scale + gridlineOffset.x), 0, 1, this.canvas.height);
-            for (let y = 0; y < order.y; y++)
+            } 
+            
+            for (let y = 0; y < order.y; y++) {
                 this.context.fillRect(0, (Math.ceil(y * this.scale + gridlineOffset.y)), this.canvas.width, 1);
+            }
         }
-
-        const triangles: Array<Triangle> = [
-            {
-                a: Vec2(10, 10),
-                b: Vec2(12, 28),
-                c: Vec2(30, 30),
-            },
-        ];
-
-        for (const triangle of triangles)
-            this.drawTriangle(triangle);
     }
 
     getFrameBufferOrder(): Vec2 {
